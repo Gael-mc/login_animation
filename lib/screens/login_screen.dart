@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 
@@ -17,6 +19,29 @@ class LoginScreenState extends State<LoginScreen> {
   SMITrigger? _trigSuccess;
   SMITrigger? _trigFail;
   SMINumber? _numLook;
+
+  Timer? _typingDebounce;
+
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _emailFocusNode.addListener(() {
+      if (_emailFocusNode.hasFocus) {
+        _isHandsUp?.value = false;
+        _numLook?.value = 50.0;
+      }
+    });
+
+    _passwordFocusNode.addListener(() {
+      if (_passwordFocusNode.hasFocus) {
+        _isHandsUp?.value = true;
+      }
+    });
+  }
 
   void _onEmailFocused(bool isFocused) {
     if (_isChecking != null) {
@@ -38,7 +63,10 @@ class LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _typingDebounce?.cancel();
     _controller?.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -70,18 +98,34 @@ class LoginScreenState extends State<LoginScreen> {
 
                       artboard.addController(_controller!);
 
-                      _isChecking = _controller?.findSMI('isChecking') as SMIBool?;
-                      _isHandsUp = _controller?.findSMI('isHandsUp') as SMIBool?;
-                      _trigSuccess = _controller?.findSMI('trigSuccess') as SMITrigger?;
-                      _trigFail = _controller?.findSMI('trigFail') as SMITrigger?;
+                      _isChecking =
+                          _controller?.findSMI('isChecking') as SMIBool?;
+                      _isHandsUp =
+                          _controller?.findSMI('isHandsUp') as SMIBool?;
+                      _trigSuccess =
+                          _controller?.findSMI('trigSuccess') as SMITrigger?;
+                      _trigFail =
+                          _controller?.findSMI('trigFail') as SMITrigger?;
                       _numLook = _controller?.findSMI('numLook') as SMINumber?;
                     },
                   ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  focusNode: _emailFocusNode,
                   onTap: () => _onEmailFocused(true),
-                  onChanged: (_) => _onEmailFocused(true),
+                  onChanged: (value) {
+                    _onEmailFocused(true);
+                    _numLook?.value = (value.length / 80.0 * 100.0)
+                        .clamp(0.0, 100.0)
+                        .toDouble();
+
+                    _typingDebounce?.cancel();
+                    _typingDebounce = Timer(const Duration(seconds: 3), () {
+                      if (!mounted) return;
+                      _isChecking?.value = false;
+                    });
+                  },
                   onEditingComplete: () => _onEmailFocused(false),
                   decoration: InputDecoration(
                     hintText: 'E-mail',
@@ -93,6 +137,7 @@ class LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  focusNode: _passwordFocusNode,
                   obscureText: _isObscure,
                   onTap: () => _onPasswordFocused(true),
                   onChanged: (_) => _onPasswordFocused(true),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'dart:async';
+//5.1 Importar Firebase Auth y la pantalla de productos
+import 'package:firebase_auth/firebase_auth.dart';
+import 'products_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,6 +40,11 @@ class _LoginScreenState extends State<LoginScreen> {
   String? emailError;
   String? passError;
 
+  //5.2 Variable para mostrar el CircularProgressIndicator mientras carga
+  bool _isLoading = false;
+  //5.2.1 Error general de Firebase (no se asocia a ningún campo)
+  String? loginError;
+
    // 4.3 Validadores
   bool isValidEmail(String email) {
     final re = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
@@ -51,8 +59,12 @@ class _LoginScreenState extends State<LoginScreen> {
     return re.hasMatch(pass);
   }
   //4.4
-  void _onLogin(){
-    //recordar espacios en blanco accidentales 
+  //5.3 Convertir _onLogin en asíncrono (Future<void> ... async)
+  Future<void> _onLogin() async {
+    //Evitar doble toque mientras se autentica
+    if (_isLoading) return;
+
+    //recordar espacios en blanco accidentales
     final email = emailCtrl.text.trim();
     final pass = passCtrl.text;
 
@@ -60,25 +72,73 @@ class _LoginScreenState extends State<LoginScreen> {
     final emailTypeError = isValidEmail(email) ? null : 'Email inválido';
     final passTypeError = isValidPassword(pass) ? null : 'Password inválido';
 
-    //4.5Para mostrar el cambio 
+    //4.5Para mostrar el cambio
     setState(() {
       emailError = emailTypeError;
       passError = passTypeError;
+      loginError = null;
     });
 
-    //4.6 Cerrar el telcado y oso neutro 
+    //4.6 Cerrar el telcado y oso neutro
     FocusScope.of(context).unfocus();
+    _typingDebonce?.cancel();
     _isChecking?.change(false);
     _isHandsUp?.change(false);
     _numLook?.value = 50.0;
 
-    //4.7 Activar triggers
-    if (emailTypeError == null && passTypeError == null) {
+    //4.7 Si algún campo tiene formato inválido, activar fallo y detener aquí
+    if (emailTypeError != null || passTypeError != null) {
+      _trigFail?.fire();
+      return;
+    }
+
+    //5.4 Activar el CircularProgressIndicator
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      //5.5 Autenticar usuario en Firebase (esperamos un par de segundos para ver el loading)
+      await Future.delayed(const Duration(seconds: 2));
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: pass,
+      );
+
+      //5.6 Apagar loading, disparar éxito del osito y esperar a que termine su animación
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
       _trigSuccess?.fire();
-    } else {
+      await Future.delayed(const Duration(seconds: 2));
+
+      //5.7 Navegar a la pantalla de productos de Spring Boot
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ProductsScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      //5.8 Si Firebase rechaza el login, apagar loading y mostrar al osito triste.
+      //El mensaje es general: no se marca error en ningún campo específico
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        loginError = e.code == 'network-request-failed'
+            ? 'Sin conexión con Firebase. Revisa tu internet.'
+            : 'Credenciales no válidas';
+      });
+      _trigFail?.fire();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        loginError = 'No se pudo iniciar sesión. Intenta de nuevo.';
+      });
       _trigFail?.fire();
     }
-  }                                                                            
+  }
 
 
   //2.2 Crear los oyentes (listeners)
@@ -227,17 +287,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                //5.8.1 Mensaje general cuando Firebase rechaza las credenciales
+                if (loginError != null) ...[
+                  Text(
+                    loginError!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 MaterialButton(
                   onPressed: _onLogin,
                   minWidth: screenSize.width,
+                  height: 50,
                   color: Colors.blue,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Login',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
+                  //5.9 Mostrar CircularProgressIndicator si está cargando, o el texto Login
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Login',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -272,6 +348,9 @@ class _LoginScreenState extends State<LoginScreen> {
     // Liberar los FocusNodes
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
+    // Liberar los controladores de texto
+    emailCtrl.dispose();
+    passCtrl.dispose();
     // Cancelar el timer si sigue activo
     _typingDebonce?.cancel();
     super.dispose();

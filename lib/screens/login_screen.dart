@@ -36,28 +36,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
 
-  //4.2 errores para mostrar en la ui 
-  String? emailError;
-  String? passError;
-
   //5.2 Variable para mostrar el CircularProgressIndicator mientras carga
   bool _isLoading = false;
-  //5.2.1 Error general de Firebase (no se asocia a ningún campo)
+  //5.2.1 Mensaje global único (OWASP): nunca dice cuál campo falló
   String? loginError;
 
-   // 4.3 Validadores
-  bool isValidEmail(String email) {
-    final re = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-    return re.hasMatch(email);
-  }
-
-  bool isValidPassword(String pass) {
-    // mínimo 8, una mayúscula, una minúscula, un dígito y un especial
-    final re = RegExp(
-      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
-    );
-    return re.hasMatch(pass);
-  }
   //4.4
   //5.3 Convertir _onLogin en asíncrono (Future<void> ... async)
   Future<void> _onLogin() async {
@@ -68,15 +51,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = emailCtrl.text.trim();
     final pass = passCtrl.text;
 
-    //recalcular errores
-    final emailTypeError = isValidEmail(email) ? null : 'Email inválido';
-    final passTypeError = isValidPassword(pass) ? null : 'Password inválido';
+    //A.1 OWASP: en el Login solo se revisa que los campos no estén vacíos.
+    //No se valida el formato para no darle pistas a un atacante.
+    final hasEmptyFields = email.isEmpty || pass.isEmpty;
 
-    //4.5Para mostrar el cambio
+    //4.5 Mostrar (o limpiar) el mensaje global
     setState(() {
-      emailError = emailTypeError;
-      passError = passTypeError;
-      loginError = null;
+      loginError = hasEmptyFields ? 'Completa el correo y la contraseña' : null;
     });
 
     //4.6 Cerrar el telcado y oso neutro
@@ -86,8 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _isHandsUp?.change(false);
     _numLook?.value = 50.0;
 
-    //4.7 Si algún campo tiene formato inválido, activar fallo y detener aquí
-    if (emailTypeError != null || passTypeError != null) {
+    //4.7 Si falta algún campo, osito triste y detener aquí
+    if (hasEmptyFields) {
       _trigFail?.fire();
       return;
     }
@@ -232,7 +213,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    errorText: emailError,
                     hintText: 'E-mail',
                     prefixIcon: const Icon(Icons.email),
                     border: OutlineInputBorder(
@@ -259,7 +239,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   obscureText: _isObscure,
                   decoration: InputDecoration(
-                    errorText: passError,
                     hintText: 'Contraseña',
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(

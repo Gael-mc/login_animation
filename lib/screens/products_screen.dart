@@ -71,7 +71,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final userEmail = FirebaseAuth.instance.currentUser?.email;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Productos de Spring Boot'),
+        title: const Text('Tienda de Videojuegos'),
         actions: [
           IconButton(
             tooltip: 'Cerrar sesión',

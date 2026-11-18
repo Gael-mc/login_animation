@@ -4,6 +4,7 @@ import 'dart:async';
 //5.1 Importar Firebase Auth y la pantalla de productos
 import 'package:firebase_auth/firebase_auth.dart';
 import 'products_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -302,9 +303,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Text("Don't have an account?"),
                       TextButton(
-                        onPressed: () {},
+                        //B.0 Abrir el Registro con push (para poder regresar).
+                        //Si se creó la cuenta, regresa el correo y lo escribimos
+                        onPressed: () async {
+                          final newEmail = await Navigator.push<String>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SignUpScreen(),
+                            ),
+                          );
+                          if (newEmail != null) {
+                            emailCtrl.text = newEmail;
+                            passCtrl.clear();
+                          }
+                        },
                         child: const Text(
-                          "Register",
+                          "Sign up",
                           style: TextStyle(
                             color: Colors.blue,
                             fontWeight: FontWeight.bold,

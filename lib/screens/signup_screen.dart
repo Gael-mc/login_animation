@@ -172,6 +172,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
               TextField(
                 controller: emailCtrl,
                 keyboardType: TextInputType.emailAddress,
+                //B.11 Al corregir el campo se quita su error
+                onChanged: (_) {
+                  if (emailError != null) {
+                    setState(() {
+                      emailError = null;
+                    });
+                  }
+                },
                 decoration: _fieldDecoration(
                   hint: 'usuario$_domain',
                   icon: Icons.email,
@@ -185,7 +193,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 controller: passCtrl,
                 obscureText: _isObscure,
                 //Redibujar para que las reglas se marquen mientras escribe
-                onChanged: (_) => setState(() {}),
+                //y quitar el error en cuanto cumple todas las reglas
+                onChanged: (value) {
+                  setState(() {
+                    if (passwordRules(value).values.every((ok) => ok)) {
+                      passError = null;
+                    }
+                  });
+                },
                 decoration: _fieldDecoration(
                   hint: 'Contraseña',
                   icon: Icons.lock,
@@ -236,6 +251,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
               TextField(
                 controller: confirmCtrl,
                 obscureText: _isObscure,
+                onChanged: (_) {
+                  if (confirmError != null) {
+                    setState(() {
+                      confirmError = null;
+                    });
+                  }
+                },
                 decoration: _fieldDecoration(
                   hint: 'Confirmar contraseña',
                   icon: Icons.lock_outline,

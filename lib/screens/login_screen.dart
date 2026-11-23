@@ -265,6 +265,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
+                      //Quitar el foco del campo activo antes de abrir el
+                      //diálogo; así, al cerrarlo, Flutter no lo vuelve a
+                      //enfocar y el teclado no se abre solo
+                      FocusManager.instance.primaryFocus?.unfocus();
                       showDialog(
                         context: context,
                         builder: (_) => ForgotPasswordDialog(

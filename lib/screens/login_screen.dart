@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'products_screen.dart';
 import 'signup_screen.dart';
+import 'forgot_password_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -258,12 +259,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  width: screenSize.width,
-                  child: const Text(
-                    "Forgot password",
-                    textAlign: TextAlign.right,
-                    style: TextStyle(decoration: TextDecoration.underline),
+                //C.0 "Forgot password?" abre el diálogo de recuperación
+                //y le pasa el correo si ya estaba escrito
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => ForgotPasswordDialog(
+                          initialEmail: emailCtrl.text.trim(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Forgot password?",
+                      style: TextStyle(
+                        color: Colors.black87,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),

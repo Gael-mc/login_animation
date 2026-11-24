@@ -40,8 +40,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   //5.2 Variable para mostrar el CircularProgressIndicator mientras carga
   bool _isLoading = false;
-  //5.2.1 Mensaje global único (OWASP): nunca dice cuál campo falló
-  String? loginError;
+
+  //5.2.1 Mensaje global único (OWASP): un SnackBar que nunca dice
+  //cuál campo falló
+  void _showLoginError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+  }
 
   //4.4
   //5.3 Convertir _onLogin en asíncrono (Future<void> ... async)
@@ -57,10 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
     //No se valida el formato para no darle pistas a un atacante.
     final hasEmptyFields = email.isEmpty || pass.isEmpty;
 
-    //4.5 Mostrar (o limpiar) el mensaje global
-    setState(() {
-      loginError = hasEmptyFields ? 'Completa el correo y la contraseña' : null;
-    });
+    //4.5 Quitar el mensaje del intento anterior
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     //4.6 Cerrar el telcado y oso neutro
     FocusScope.of(context).unfocus();
@@ -71,6 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     //4.7 Si falta algún campo, osito triste y detener aquí
     if (hasEmptyFields) {
+      _showLoginError('Completa el correo y la contraseña');
       _trigFail?.fire();
       return;
     }
@@ -108,17 +115,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        loginError = e.code == 'network-request-failed'
-            ? 'Sin conexión con Firebase. Revisa tu internet.'
-            : 'Credenciales no válidas';
       });
+      _showLoginError(
+        e.code == 'network-request-failed'
+            ? 'Sin conexión con Firebase. Revisa tu internet.'
+            : 'Credenciales inválidas',
+      );
       _trigFail?.fire();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        loginError = 'No se pudo iniciar sesión. Intenta de nuevo.';
       });
+      _showLoginError('No se pudo iniciar sesión. Intenta de nuevo.');
       _trigFail?.fire();
     }
   }
@@ -286,18 +295,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                //5.8.1 Mensaje general cuando Firebase rechaza las credenciales
-                if (loginError != null) ...[
-                  Text(
-                    loginError!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
                 MaterialButton(
                   onPressed: _onLogin,
                   minWidth: screenSize.width,
